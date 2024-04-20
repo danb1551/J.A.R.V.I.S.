@@ -7,14 +7,39 @@ import pyautogui
 import wikipedia
 import webbrowser
 import time
-
+from pytube import YouTube
 import pygame
+
 pygame.init()
 
 recognizer = sr.Recognizer()
 engine = pyttsx3.init()
 engine.say("hi. how can i help you today")
 engine.runAndWait()
+
+#   Stažení videa
+
+def download_video(song):
+    try:
+        yt = YouTube(song)
+        stream = yt.streams.filter(progressive=True, file_extension='mp4').first()
+        stream.download()
+        print("Video sucessfully downloaded")
+        talk("Video sucessfully downloaded")
+    except Exception as e:
+        print(f"Error with downloading video {str(e)}")
+        talk(f"Error with downloading video {str(e)}")
+
+#   Stažení písničky
+
+def download_audio(song):
+    try:
+        yt = YouTube(song)
+        stream = yt.streams.filter(only_audio=True).first()
+        stream.download()
+        print("Song is sucessfully downloaded")
+    except Exception as e:
+        print(f"Error in downloading song: {str(e)}")
 
 def talk(text):
     engine.say(text)
@@ -92,9 +117,12 @@ def run_jarvis():
         talk(f"current time is: {time}")
 
     elif 'shutdown' in command:
-        talk("shuting down the pc in")
-        talk("3. 2. 1.")
-        os.system("shutdown /s /t 1")
+        talk("realy shutdown the pc?")
+        potvrzeni = rozpoznani_reci()
+        if 'yes' in potvrzeni:
+            talk("shuting down the pc in")
+            talk("3. 2. 1.")
+            os.system("shutdown /s /t 1")
 
     elif 'restart' in command:
         talk("restarting the pc in")
@@ -130,7 +158,7 @@ def run_jarvis():
         talk("3. 2. 1. ")
         pocet = int(number)
         for i in range(pocet):
-            pyautogui.write("tohle se posila automaticky. neodpovidej. Zkousim program.")
+            pyautogui.write("nigger")
             pygame.time.delay(250)
             pyautogui.press('enter')
 
@@ -145,12 +173,59 @@ def run_jarvis():
         pyautogui.write(command)
         pyautogui.sleep(1)
         pyautogui.press('enter')
-
         talk('opening' + command)
 
-    else:
-        print("Nastala chyba")
-        talk("Nastala chyba")
+    elif 'download' in command:
+        command = command.replace('download', "")
+        talk("what type of file do you want.")
+        typ_souboru = rozpoznani_reci()
+        talk(f'downloading and opening {command}')
+        song = pywhatkit.playonyt(command)
+        print(song)
+
+        if 'song' in typ_souboru:
+            download_audio(song)
+
+        elif 'video' in typ_souboru:
+            download_video(song)
+
+        else:
+            print("Error")
+            talk("Error")
+
+    elif 'what is' in command:
+        thing = command.replace('what is', '')
+        info = get_wikipedia_info(thing)
+        print(info)
+        talk(info)
+
+    elif 'who are you' in command:
+        print(kdo_jsem)
+        talk(kdo_jsem)
+
+
+
+import wikipedia
+
+def get_wikipedia_info(topic):
+    try:
+        # Získání plného textu z Wikipedie
+        full_info = wikipedia.summary(topic, sentences=5)
+
+        # Zkrácení textu na maximálně pět vět
+        sentences = full_info.split('. ')
+        shortened_info = '. '.join(sentences[:5]) + '.'
+
+        return shortened_info
+    except wikipedia.exceptions.DisambiguationError as e:
+        # Pokud jsou nalezeny více možných významů, vybereme první a získáme informace o něm
+        print(f"I find more that 1 thing. I choice first.: {e.options[0]}")
+        return get_wikipedia_info(e.options[0])
+    except wikipedia.exceptions.PageError:
+        # Pokud stránka není nalezena, vrátíme informaci o chybě
+        return "Info doesn't find."
+
+
 
 
 while True:
